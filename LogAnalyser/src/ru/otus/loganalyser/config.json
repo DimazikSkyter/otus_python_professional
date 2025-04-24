@@ -1,0 +1,9 @@
+{
+  "LOG_DIR": "./resource",
+  "REPORT_DIR": "./resource",
+  "REPORT_SIZE": 1000,
+  "ERROR_THRESHOLD": 0.1,
+  "TEMPLATE": "report.html",
+  "LOG_FILE": "nginx-access-ui.log-20170630",
+  "PARSE_ERROR_THRESHOLD": 0.2
+}
