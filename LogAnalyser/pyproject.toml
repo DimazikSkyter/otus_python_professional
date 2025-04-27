@@ -3,7 +3,7 @@ name = "log-analyser"
 version = "0.1.0"
 description = "first homework"
 authors = [
-    {name = "Дмитрий Цитман",email = "dimazzik@gmail.com"}
+    {name = "Дмитрий dimazik",email = "dimazzik@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -26,7 +26,12 @@ pytest = "^7.3"
 black = "^25.1.0"
 ruff = "^0.11.6"
 assertpy = "^1.1"
+pre-commit = "^4.2.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.isort]
+profile = "black"

@@ -1,33 +1,39 @@
 #!/usr/bin/env python3
 
-import re
-import sys
+import argparse
 import gzip
 import json
-import argparse
+import logging
+import re
+import statistics
+import sys
+from collections import defaultdict
 from datetime import datetime
 from os import times
 from pathlib import Path
 from string import Template
-from typing import Iterator, NamedTuple, List, Dict, Optional, Any
-from collections import defaultdict
-import statistics
-import logging
-import structlog
+from typing import (
+    IO,
+    Any,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    cast,
+)
 
-# Types
-default_config = {
-    "LOG_DIR": "/var/log/nginx",
-    "REPORT_DIR": "./reports",
-    "REPORT_SIZE": 1000,
-    "ERROR_THRESHOLD": 0.1,
-    "TEMPLATE": "report.html",
-    "LOG_FILE": None,
-    "PARSE_ERROR_THRESHOLD": 0.2,
-}
+import structlog
+from packaging.tags import logger
+
+ENCODING_UTF8 = "utf-8"
+REPORT_DIR_KEY = "REPORT_DIR"
+BASE_DIR = Path(__file__).resolve().parents[4]
 
 LOG_LINE_RE = re.compile(
-    r'''
+    r"""
     ^(?P<host>\d{1,3}(?:\.\d{1,3}){3})\s+            # IP
     (?P<token>\S+)\s+-\s+                              # второй токен + дефис
     \[(?P<time>[^\]]+)\]\s+                            # дата/время
@@ -40,10 +46,9 @@ LOG_LINE_RE = re.compile(
     "(?P<extra3>[^"]*)"\s+                             # 3-е доп. поле (здесь есть пробел)
     (?P<request_time>\d+\.\d+)                         # request_time
     $
-    ''',
-    re.VERBOSE
+    """,
+    re.VERBOSE,
 )
-
 
 
 class LogFile(NamedTuple):
@@ -68,41 +73,77 @@ def load_config_or_get_default() -> Dict[str, Any]:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.json")
     args, _ = parser.parse_known_args()
-    config_path: Path = Path(args.config)
-    defaults: Dict[str, Any] = default_config
 
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    with config_path.open() as f:
-        cfg = json.load(f)
+    default_config_path = Path("config.json")
+    user_config_path = Path(args.config)
+
+    if not default_config_path.exists():
+        raise FileNotFoundError(f"Default config file not found: {default_config_path}")
+
+    # Загружаем дефолтный конфиг
+    with default_config_path.open() as f:
+        defaults = json.load(f)
 
     merged = defaults.copy()
-    merged.update(cfg)
+
+    if user_config_path.exists() and user_config_path != default_config_path:
+        with user_config_path.open() as f:
+            user_cfg = json.load(f)
+        merged.update(user_cfg)
+
     return merged
 
 
-def setup_logging(log_path: Optional[str] = None):
+def setup_logging(config: Dict[str, Any]):
     """
-    Initialize structlog with JSON output
+    Инициализируем логгер
+    :param config: Конфигурация исполнения программы
+    :return:
     """
-    processors = [
-        structlog.processors.TimeStamper(fmt="iso"),
-        structlog.processors.JSONRenderer(),
-    ]
-    structlog.configure(processors=processors)
-    if log_path:
+    log_path_template = config.get("LOGGER_OUTPUT_FILE")
+    handler: logging.Handler
+    if log_path_template:
+        today = datetime.now().strftime("%Y.%m.%d")
+        log_path = BASE_DIR / log_path_template.replace("{{date}}", today)
+        log_path = Path(log_path)
+
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
         handler = logging.FileHandler(log_path)
     else:
-        handler = logging.StreamHandler()
+        handler = logging.StreamHandler(sys.stdout)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.handlers = [handler]
+
+    structlog.configure(
+        processors=[
+            structlog.processors.TimeStamper(fmt="iso"),
+            structlog.processors.JSONRenderer(),
+        ],
+        logger_factory=structlog.stdlib.LoggerFactory(),
+        cache_logger_on_first_use=True,
+    )
+
+    init_logger = structlog.get_logger()
+    init_logger.info("Logger successfully initialized.")
+    return init_logger
 
 
-def find_last_log(log_dir: Path) -> Optional[LogFile]:
+def find_last_log(config: Dict[str, Any], logger) -> Optional[LogFile]:
     """
-    Find the most recent log file by name: nginx-access-ui.log-YYYYMMDD(.gz|.plain)
+    Ищем последний файл соответствующий шаблону
     """
+    log_dir: Path = BASE_DIR / config["LOG_DIR"]
+    report_dir: Path = BASE_DIR / config[REPORT_DIR_KEY]
     pattern = re.compile(r"nginx-access-ui\.log-(?P<date>\d{8})(?:\.gz)?$")
+    logger.info("Try to find last log file.")
+
     latest: Optional[LogFile] = None
     for entry in log_dir.iterdir():
+        if not entry.is_file():
+            continue
         m = pattern.match(entry.name)
         if not m:
             continue
@@ -111,27 +152,54 @@ def find_last_log(log_dir: Path) -> Optional[LogFile]:
         candidate = LogFile(path=entry, date=date, ext=ext)
         if latest is None or candidate.date > latest.date:
             latest = candidate
-    return latest
+    if latest is None:
+        return None
+
+    logger.info("File found successfully. Try to check report already exists.")
+    report_filename = f"report-{latest.date.strftime('%Y.%m.%d')}.html"
+    report_path = report_dir / report_filename
+    if not report_path.exists():
+        return latest
+
+    return None
 
 
-def open_log(logfile: LogFile) -> Iterator[str]:
+def open_log(logfile: LogFile, logger) -> Iterator[str]:
     """
-    Open plain or gzip log file, yielding lines
+    Открытие файла как gz, так и тектосового
     """
-    opener = gzip.open if logfile.ext == ".gz" else open
-    print(Path("nginx_log.positive.txt").absolute())
-    with opener(logfile.path, "rt", encoding="utf-8") as f:
-        for line in f:
-            yield line
+    opener = cast(Callable[..., IO[Any]], gzip.open if logfile.ext == ".gz" else open)
+    logger.info(f"Try to open file {logfile.path}")
+
+    try:
+        f = opener(logfile.path.as_posix(), "rt", encoding=ENCODING_UTF8)
+    except OSError:
+        logger.exception(f"Failed to open file {logfile.path}")
+        return
+    except UnicodeDecodeError:
+        logger.exception(f"Failed to decode file {logfile.path}")
+        return
+
+    try:
+        with f:
+            for line in f:
+                yield line
+    except (OSError, UnicodeDecodeError):
+        logger.exception(f"Error while file is reading {logfile.path}")
+        return
 
 
+def check_actual_date():
+    pass
 
 
-def parse_log(lines: Iterator[str], error_threshold: float) -> Iterator[LogEntry]:
+def parse_log(
+    lines: Iterator[str], config: Dict[str, Any], logger
+) -> Iterator[LogEntry]:
     """
-
-    Yield LogEntry for each parsed line; track parse errors and abort if too many.
+    Обработка лога
     """
+    error_threshold = config.get("PARSE_ERROR_THRESHOLD")
     total = 0
     errors = 0
     for line in lines:
@@ -143,26 +211,39 @@ def parse_log(lines: Iterator[str], error_threshold: float) -> Iterator[LogEntry
         yield LogEntry(
             host=m.group("host"),
             url=m.group("url"),
-            time=datetime.strptime(m.group("time"), "%d/%b/%Y:%H:%M:%S %z") if m.group("time") != "-" else None,
+            time=(
+                datetime.strptime(m.group("time"), "%d/%b/%Y:%H:%M:%S %z")
+                if m.group("time") and m.group("time") != "-"
+                else datetime.min
+            ),
             method=m.group("method"),
-            size=m.group("size"),
-            request_time=float(m.group("request_time")))
-    if total and errors / total > error_threshold:
-        structlog.get_logger().error(
-            "High parse error rate", total=total, errors=errors
+            size=(
+                int(m.group("size"))
+                if m.group("size") and m.group("size").isdigit()
+                else 0
+            ),
+            request_time=float(m.group("request_time")),
         )
+    if error_threshold is not None and total and errors / total > error_threshold:
+        logger.error("High parse error rate", total=total, errors=errors)
         raise RuntimeError("Parse errors exceed threshold")
+
 
 def none_if_dash(value: str):
     return None if value == "-" else value
 
+
 def process_entries(
-    entries: Iterator[LogEntry],
-    report_size: int
-) -> List[Dict[str, any]]:
+    entries: Iterator[LogEntry], config: Dict[str, Any], logger
+) -> List[Dict[str, Any]]:
     """
-    Compute statistics for each URL and return top N by time_sum
+    Высчитываем статистику на основе LogEntry генератора
+    :param entries: генератор
+    :param config: Конфиг исполнения программы
+    :param logger: логгер исполнения
+    :return:
     """
+    report_size: int = config.get("REPORT_SIZE") or 1000
     stats: Dict[str, List[float]] = defaultdict(list)
     for entry in entries:
         stats[entry.url].append(entry.request_time)
@@ -186,44 +267,63 @@ def process_entries(
                 "time_med": statistics.median(times),
             }
         )
-    report.sort(key=lambda x: x["time_sum"], reverse=True)
+    report.sort(key=lambda x: cast(float, x["time_sum"]), reverse=True)
     return report[:report_size]
 
 
-def render_report(report_data: List[Dict], template_path: Path, output_path: Path):
+def render_report(report_data: List[Dict], config: Dict[str, Any], logger) -> str:
     """
-    Render the HTML report from template and JSON data
+    Генерация отчета на основании шаблона и данных
     """
-    tpl = Template(template_path.read_text(encoding="utf-8"))
-    table_json = json.dumps(report_data)
-    html = tpl.safe_substitute(table_json=table_json)
-    output_path.write_text(html, encoding="utf-8")
+    try:
+        template_path: Path = BASE_DIR / config["TEMPLATE"]
+        logger.info("Try to render report.")
+        tpl = Template(template_path.read_text(encoding=ENCODING_UTF8))
+        table_json = json.dumps(report_data)
+        return tpl.safe_substitute(table_json=table_json)
+    except Exception as e:
+        logger.exception("Failed to render report.")
+        raise e
+
+
+def save_rendered_report(
+    rendered_report: Tuple[str, str], config: Dict[str, Any], logger
+):
+    """
+    Сохраняет сформированный отчет в директорию отчетов
+    :param rendered_report: пара из имени файла и срендеренного отчета.
+    :param config: Конфигурация исполнения программы
+    :param logger: логгер исполнения
+    :return: Ничего не возвращает
+    """
+    filename, html = rendered_report
+    output_path: Path = BASE_DIR / config[REPORT_DIR_KEY] / filename
+    logger.info(f"Try to save file {output_path}")
+    output_path.write_text(html, encoding=ENCODING_UTF8)
 
 
 def main():
     config = load_config_or_get_default()
+    logger = setup_logging(config)
+    last_log_file = find_last_log(config, logger)
 
-    setup_logging(config.get("LOG_FILE"))
-    logger = structlog.get_logger()
-    log_dir = Path(config["LOG_DIR"])
-    last = find_last_log(log_dir)
-    if not last:
+    if not last_log_file:
         logger.info("No logs to process")
         return
 
-    report_file = (
-        Path(config["REPORT_DIR"]) / f"report-{last.date.strftime('%Y.%m.%d')}.html"
+    lines = open_log(last_log_file, logger)
+    parsed = parse_log(lines, config, logger)
+    report_data = process_entries(parsed, config, logger)
+    rendered_report = render_report(report_data, config, logger)
+    save_rendered_report(
+        (f"report-{last_log_file.date.strftime('%Y.%m.%d')}.html", rendered_report),
+        config,
+        logger,
     )
-    if report_file.exists():
-        logger.info("Report already exists", report=str(report_file))
-        return
 
-    lines = open_log(last)
-    parsed = parse_log(lines, config["PARSE_ERROR_THRESHOLD"])
-    report_data = process_entries(parsed, config["REPORT_SIZE"])
-    render_report(report_data, Path(config["TEMPLATE"]), report_file)
-
-    logger.info("Report generated successfully", report=str(report_file))
+    logger.info(
+        f"Report generated and saved successfully for day {last_log_file.date.strftime('%Y.%m.%d')}"
+    )
 
 
 if __name__ == "__main__":
