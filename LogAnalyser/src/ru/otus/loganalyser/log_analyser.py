@@ -12,18 +12,8 @@ from datetime import datetime
 from os import times
 from pathlib import Path
 from string import Template
-from typing import (
-    IO,
-    Any,
-    Callable,
-    Dict,
-    Iterator,
-    List,
-    NamedTuple,
-    Optional,
-    Tuple,
-    cast,
-)
+from typing import (IO, Any, Callable, Dict, Iterator, List, NamedTuple,
+                    Optional, Tuple, cast)
 
 import structlog
 from packaging.tags import logger
