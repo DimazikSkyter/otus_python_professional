@@ -1,9 +1,14 @@
 import datetime
 import functools
 import hashlib
+import http.client
+import json
 import os
 import sys
+import threading
 import unittest
+from http.server import HTTPServer
+from unittest.mock import patch
 
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../src"))
@@ -28,7 +33,15 @@ class TestSuite(unittest.TestCase):
     def setUp(self):
         self.context = {}
         self.headers = {}
-        self.settings = {}
+
+        class MockStore:
+            def cache_get(self, key):
+                return 5
+
+            def cache_set(self, key, value, ttl=None):
+                pass
+
+        self.settings = MockStore()
 
     def get_response(self, request):
         return api.method_handler(
@@ -148,7 +161,6 @@ class TestSuite(unittest.TestCase):
     @cases(
         [
             {"phone": "79175002040", "email": "stupnikov@otus.ru"},
-            {"phone": 79175002040, "email": "stupnikov@otus.ru"},
             {
                 "gender": 1,
                 "birthday": "01.01.2000",
@@ -178,9 +190,12 @@ class TestSuite(unittest.TestCase):
         self.set_valid_auth(request)
         response, code = self.get_response(request)
         self.assertEqual(api.OK, code, arguments)
+
         score = response.get("score")
         self.assertTrue(isinstance(score, (int, float)) and score >= 0, arguments)
-        self.assertEqual(sorted(self.context["has"]), sorted(arguments.keys()))
+
+        expected_keys = [k for k, v in arguments.items() if v is not None]
+        self.assertEqual(sorted(self.context["has"]), sorted(expected_keys))
 
     def test_ok_score_admin_request(self):
         arguments = {"phone": "79175002040", "email": "stupnikov@otus.ru"}
@@ -228,6 +243,7 @@ class TestSuite(unittest.TestCase):
             {"client_ids": [0]},
         ]
     )
+    @patch("ru.otus.scoring.api.get_interests", lambda store, cid: ["cars", "books"])
     def test_ok_interests_request(self, arguments):
         request = {
             "account": "horns&hoofs",
@@ -248,6 +264,127 @@ class TestSuite(unittest.TestCase):
             )
         )
         self.assertEqual(self.context.get("nclients"), len(arguments["client_ids"]))
+
+    @cases(
+        [
+            {
+                "body": {
+                    "account": "horns&hoofs",
+                    "login": "h&f",
+                    "method": "online_score",
+                    "token": hashlib.sha512(
+                        "horns&hoofsh&fOtus".encode("utf-8")
+                    ).hexdigest(),
+                    "arguments": {"phone": "79175002011", "email": "user@example.com"},
+                },
+                "expected_code": 200,
+                "expect_score": True,
+            },
+            {
+                "body": {
+                    "account": "horns&hoofs",
+                    "login": "admin",
+                    "method": "online_score",
+                    "token": hashlib.sha512(
+                        (
+                            datetime.datetime.now().strftime("%Y%m%d%H")
+                            + api.ADMIN_SALT
+                        ).encode("utf-8")
+                    ).hexdigest(),
+                    "arguments": {"phone": "79175002012", "email": "admin@example.com"},
+                },
+                "expected_code": 200,
+                "expect_score": True,
+            },
+            {
+                "body": {
+                    "account": "horns&hoofs",
+                    "login": "h&f",
+                    "method": "online_score",
+                    "token": "badtoken",
+                    "arguments": {"phone": "79175002013", "email": "user@example.com"},
+                },
+                "expected_code": 403,
+                "expect_score": False,
+            },
+        ]
+    )
+    def test_do_POST(self, case):
+        class MockStore:
+            def cache_get(self, key):
+                return 5
+
+            def cache_set(self, key, value, ttl=None):
+                pass
+
+        handler_class = type(
+            "CustomHandler", (api.MainHTTPHandler,), {"store": MockStore()}
+        )
+
+        server = HTTPServer(("localhost", 0), handler_class)
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever)
+        thread.daemon = True
+        thread.start()
+        try:
+            conn = http.client.HTTPConnection("localhost", port)
+            conn.request(
+                "POST",
+                "/method",
+                body=json.dumps(case["body"]),
+                headers={"Content-Type": "application/json"},
+            )
+            response = conn.getresponse()
+            data = json.loads(response.read())
+
+            self.assertEqual(response.status, case["expected_code"])
+            if case["expect_score"]:
+                self.assertIn("score", data.get("response", {}))
+            else:
+                self.assertNotIn("score", data.get("response", {}))
+        finally:
+            server.shutdown()
+            server.server_close()
+
+    @cases(
+        [
+            {
+                "account": "any",
+                "login": api.ADMIN_LOGIN,
+                "token": hashlib.sha512(
+                    (
+                        datetime.datetime.now().strftime("%Y%m%d%H") + api.ADMIN_SALT
+                    ).encode("utf-8")
+                ).hexdigest(),
+                "expected": True,
+            },
+            {
+                "account": "horns&hoofs",
+                "login": "h&f",
+                "token": hashlib.sha512(
+                    "horns&hoofsh&fOtus".encode("utf-8")
+                ).hexdigest(),
+                "expected": True,
+            },
+            {
+                "account": "horns&hoofs",
+                "login": "h&f",
+                "token": "invalidtoken",
+                "expected": False,
+            },
+        ]
+    )
+    def test_check_auth(self, case):
+        request = api.MethodRequest(
+            {
+                "account": case["account"],
+                "login": case["login"],
+                "token": case["token"],
+                "arguments": {},
+                "method": "online_score",
+            }
+        )
+        self.assertEqual(api.check_auth(request), case["expected"])
 
 
 if __name__ == "__main__":

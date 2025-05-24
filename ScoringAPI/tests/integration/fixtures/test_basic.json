@@ -1,0 +1,7 @@
+{
+  "hazelcast" : {
+    "TEST_TIMEOUT": 10,
+    "HAZELCAST_IMAGE": "hazelcast/hazelcast:5.3.6",
+    "MAP_NAME": "test_map"
+  }
+}

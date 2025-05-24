@@ -6,13 +6,15 @@ import datetime
 import hashlib
 import json
 import logging
-import re
 import sys
 import uuid
 from argparse import ArgumentParser
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Any, Optional
 
+import hazelcast
 from ru.otus.scoring.scoring import get_interests, get_score
+from ru.otus.scoring.store import CacheStore
 
 SALT = "Otus"
 ADMIN_LOGIN = "admin"
@@ -120,6 +122,10 @@ class BirthDayField(DateField):
         if (datetime.datetime.today() - date).days / 365.25 > 70:
             raise ValueError("Birthday must be less than 70 years ago")
 
+    def __set__(self, instance, value):
+        self.validate(value)
+        self.value = datetime.datetime.strptime(value, "%d.%m.%Y") if value else None
+
 
 class GenderField(Field):
     def _validate(self, value):
@@ -156,7 +162,7 @@ class BaseRequest(metaclass=MetaRequest):
             value = data.get(name)
             try:
                 setattr(self, name, value)
-                self.cleaned_data[name] = value
+                self.cleaned_data[name] = field.value
             except Exception as e:
                 self.errors[name] = str(e)
 
@@ -237,6 +243,7 @@ def method_handler(request, ctx, store):
             logging.info("Logic validation error: %s", str(e))
             return {"error": str(e)}, 422
         ctx["has"] = [k for k in req.cleaned_data if req.cleaned_data[k] is not None]
+        print("CLEANED DATA TYPES:", {k: type(v) for k, v in req.cleaned_data.items()})
         score = 42 if method_request.is_admin else get_score(store, **req.cleaned_data)
         logging.info("Score calculated: %s", score)
         return {"score": score}, 200
@@ -259,7 +266,7 @@ def method_handler(request, ctx, store):
 
 class MainHTTPHandler(BaseHTTPRequestHandler):
     router = {"method": method_handler}
-    store = None
+    store: Optional[CacheStore] = None
 
     def get_request_id(self, headers):
         return headers.get("HTTP_X_REQUEST_ID", uuid.uuid4().hex)
@@ -305,6 +312,9 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-p", "--port", action="store", type=int, default=8080)
     parser.add_argument("-l", "--log", action="store", default=None)
+    parser.add_argument("--map", type=str, default="map")
+    parser.add_argument("--cluster-name", type=str, default="dev")
+    parser.add_argument("--member", type=str, default="127.0.0.1:5701")
     args = parser.parse_args()
     logging.basicConfig(
         filename=args.log,
@@ -312,6 +322,16 @@ if __name__ == "__main__":
         format="[%(asctime)s] %(levelname).1s %(message)s",
         datefmt="%Y.%m.%d %H:%M:%S",
     )
+
+    hz_client = hazelcast.HazelcastClient(
+        cluster_name=args.cluster_name,
+        cluster_members=[args.member],
+        connection_timeout=5.0,
+    )
+    store: CacheStore[str, Any] = CacheStore(hz_client, args.map)
+
+    MainHTTPHandler.store = store
+
     server = HTTPServer(("localhost", args.port), MainHTTPHandler)
     logging.info("Starting server at %s" % args.port)
     try:
