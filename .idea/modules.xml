@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/LogAnalyser/LogAnalyser.iml" filepath="$PROJECT_DIR$/LogAnalyser/LogAnalyser.iml" />
       <module fileurl="file://$PROJECT_DIR$/PythonTypeChallenges/PythonTypeChallenges.iml" filepath="$PROJECT_DIR$/PythonTypeChallenges/PythonTypeChallenges.iml" />
       <module fileurl="file://$PROJECT_DIR$/ScoringAPI/ScoringAPI.iml" filepath="$PROJECT_DIR$/ScoringAPI/ScoringAPI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/WarhouseDDD/WarhouseDDD.iml" filepath="$PROJECT_DIR$/WarhouseDDD/WarhouseDDD.iml" />
       <module fileurl="file://$PROJECT_DIR$/otus_python_professional.iml" filepath="$PROJECT_DIR$/otus_python_professional.iml" />
     </modules>
   </component>
