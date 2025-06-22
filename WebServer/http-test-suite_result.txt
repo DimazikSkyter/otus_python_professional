@@ -1,0 +1,253 @@
+"C:\Program Files (x86)\GnuWin32\bin\make.exe" -f E:/Github/otus_python_professional/WebServer/Makefile -C E:\Github\otus_python_professional\WebServer http-test-suite-run
+make: Entering directory `E:/Github/otus_python_professional/Webprocess_begin: CreateProcess(NULL, pwd, ...) failed.
+Server'
+poetry run start /B python webserver_src/httpd.py -p 80 -r http-test-suite
+timeout /T 2 > nul
+2025-06-22 21:03:43,998 [74116] [INFO] HTTP server started at ('0.0.0.0', 80)
+cd http-test-suite && poetry run python httptest.py
+E:\Github\otus_python_professional\WebServer\http-test-suite\httptest.py:215: Sy
+ntaxWarning: invalid escape sequence '\s'
+  (name, value) = re.split(b'\s*:\s*', v, 1)
+E:\Github\otus_python_professional\WebServer\http-test-suite\httptest.py:217: Sy
+ntaxWarning: invalid escape sequence '\s'
+  (name, value) = re.split('\s*:\s*', v, 1)
+directory index file exists ... 2025-06-22 21:03:49,244 [74116] [INFO] GET /http
+test/dir2/ from ('127.0.0.1', 52192)
+2025-06-22 21:03:49,244 [74116] [INFO] Served file: http-test-suite\httptest/dir
+2/index.html with len 34
+2025-06-22 21:03:49,301 [74116] [INFO] Response sent to ('127.0.0.1', 52192)
+ok
+document root escaping forbidden ... 2025-06-22 21:03:51,329 [74116] [INFO] GET
+/httptest/../../../../../../../../../../../../../etc/passwd from ('127.0.0.1', 5
+2194)
+2025-06-22 21:03:51,329 [74116] [ERROR] File not found http-test-suite\httptest/
+../../../../../../../../../../../../../etc/passwd
+2025-06-22 21:03:51,329 [74116] [ERROR] Failed to get file with HTTPRequest HTTP
+Request(src=('127.0.0.1', 52194), method='GET', path='/httptest/../../../../../.
+./../../../../../../../etc/passwd', params={}, version='HTTP/1.1', headers={'Hos
+t': 'localhost', 'Accept-Encoding': 'identity'}, body=None) error: File httptest
+/../../../../../../../../../../../../../etc/passwd doesn't exists
+Traceback (most recent call last):
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 286, in generate_response
+    response_body = self.handler(request)
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 93, in __call__
+    return handler(income)
+           ^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 50, in __call__
+    raise FileNotFoundError(f"File {path} doesn't exists")
+FileNotFoundError: File httptest/../../../../../../../../../../../../../etc/pass
+wd doesn't exists
+2025-06-22 21:03:51,330 [74116] [INFO] Response sent to ('127.0.0.1', 52194)
+ok
+Send bad http headers ... ok
+file located in nested folders ... 2025-06-22 21:03:51,331 [74116] [ERROR] Error
+ while handling request from ('127.0.0.1', 52195): not enough values to unpack (
+expected 3, got 0)
+Traceback (most recent call last):
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 177, in handle_received_data
+    response = server.handle_data(client_address, buffer)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 223, in handle_data
+    request: HTTPRequest = self.parse_request(client_address, data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 244, in parse_request
+    method, raw_path, version = request_line.strip().split()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: not enough values to unpack (expected 3, got 0)
+2025-06-22 21:03:53,355 [74116] [INFO] GET /httptest/dir1/dir12/dir123/deep.txt
+from ('127.0.0.1', 52198)
+2025-06-22 21:03:53,355 [74116] [INFO] Served file: http-test-suite\httptest/dir
+1/dir12/dir123/deep.txt with len 20
+2025-06-22 21:03:53,355 [74116] [INFO] Response sent to ('127.0.0.1', 52198)
+ok
+absent file returns 404 ... 2025-06-22 21:03:55,392 [74116] [INFO] GET /httptest
+/smdklcdsmvdfjnvdfjvdfvdfvdsfssdmfdsdfsd.html from ('127.0.0.1', 52200)
+2025-06-22 21:03:55,393 [74116] [ERROR] File not found http-test-suite\httptest/
+smdklcdsmvdfjnvdfjvdfvdfvdsfssdmfdsdfsd.html
+2025-06-22 21:03:55,393 [74116] [ERROR] Failed to get file with HTTPRequest HTTP
+Request(src=('127.0.0.1', 52200), method='GET', path='/httptest/smdklcdsmvdfjnvd
+fjvdfvdfvdsfssdmfdsdfsd.html', params={}, version='HTTP/1.1', headers={'Host': '
+localhost', 'Accept-Encoding': 'identity'}, body=None) error: File httptest/smdk
+lcdsmvdfjnvdfjvdfvdfvdsfssdmfdsdfsd.html doesn't exists
+Traceback (most recent call last):
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 286, in generate_response
+    response_body = self.handler(request)
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 93, in __call__
+    return handler(income)
+           ^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 50, in __call__
+    raise FileNotFoundError(f"File {path} doesn't exists")
+FileNotFoundError: File httptest/smdklcdsmvdfjnvdfjvdfvdfvdsfssdmfdsdfsd.html do
+esn't exists
+2025-06-22 21:03:55,393 [74116] [INFO] Response sent to ('127.0.0.1', 52200)
+ok
+urlencoded filename ... 2025-06-22 21:03:57,442 [74116] [INFO] GET /httptest/dir
+2/%70%61%67%65%2e%68%74%6d%6c from ('127.0.0.1', 52202)
+2025-06-22 21:03:57,442 [74116] [INFO] Served file: http-test-suite\httptest/dir
+2/page.html with len 38
+2025-06-22 21:03:57,443 [74116] [INFO] Response sent to ('127.0.0.1', 52202)
+ok
+file with two dots in name ... 2025-06-22 21:03:59,498 [74116] [INFO] GET /httpt
+est/text..txt from ('127.0.0.1', 52205)
+2025-06-22 21:03:59,499 [74116] [INFO] Served file: http-test-suite\httptest/tex
+t..txt with len 5
+2025-06-22 21:03:59,499 [74116] [INFO] Response sent to ('127.0.0.1', 52205)
+ok
+query string after filename ... 2025-06-22 21:04:01,539 [74116] [INFO] GET /http
+test/dir2/page.html from ('127.0.0.1', 52207)
+2025-06-22 21:04:01,539 [74116] [INFO] Response sent to ('127.0.0.1', 52207)
+ok
+slash after filename ... 2025-06-22 21:04:03,598 [74116] [INFO] GET /httptest/di
+r2/page.html/ from ('127.0.0.1', 52410)
+2025-06-22 21:04:03,598 [74116] [ERROR] File not found http-test-suite\httptest/
+dir2/page.html/index.html
+2025-06-22 21:04:03,598 [74116] [ERROR] Failed to get file with HTTPRequest HTTP
+Request(src=('127.0.0.1', 52410), method='GET', path='/httptest/dir2/page.html/'
+, params={}, version='HTTP/1.1', headers={'Host': 'localhost', 'Accept-Encoding'
+: 'identity'}, body=None) error: File httptest/dir2/page.html/index.html doesn't
+ exists
+Traceback (most recent call last):
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 286, in generate_response
+    response_body = self.handler(request)
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 93, in __call__
+    return handler(income)
+           ^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 50, in __call__
+    raise FileNotFoundError(f"File {path} doesn't exists")
+FileNotFoundError: File httptest/dir2/page.html/index.html doesn't exists
+2025-06-22 21:04:03,599 [74116] [INFO] Response sent to ('127.0.0.1', 52410)
+ok
+filename with spaces ... 2025-06-22 21:04:05,634 [74116] [INFO] GET /httptest/sp
+ace%20in%20name.txt from ('127.0.0.1', 52412)
+2025-06-22 21:04:05,635 [74116] [INFO] Served file: http-test-suite\httptest/spa
+ce in name.txt with len 19
+2025-06-22 21:04:05,635 [74116] [INFO] Response sent to ('127.0.0.1', 52412)
+ok
+Content-Type for .css ... 2025-06-22 21:04:07,677 [74116] [INFO] GET /httptest/s
+plash.css from ('127.0.0.1', 52414)
+2025-06-22 21:04:07,677 [74116] [INFO] Served file: http-test-suite\httptest/spl
+ash.css with len 98620
+2025-06-22 21:04:07,678 [74116] [INFO] Response sent to ('127.0.0.1', 52414)
+ok
+Content-Type for .gif ... 2025-06-22 21:04:09,753 [74116] [INFO] GET /httptest/p
+ic_ask.gif from ('127.0.0.1', 52417)
+2025-06-22 21:04:09,753 [74116] [INFO] Served file: http-test-suite\httptest/pic
+_ask.gif with len 1747
+2025-06-22 21:04:09,754 [74116] [INFO] Response sent to ('127.0.0.1', 52417)
+ok
+Content-Type for .html ... 2025-06-22 21:04:11,798 [74116] [INFO] GET /httptest/
+dir2/page.html from ('127.0.0.1', 52420)
+2025-06-22 21:04:11,798 [74116] [INFO] Response sent to ('127.0.0.1', 52420)
+ok
+Content-Type for .jpeg ... 2025-06-22 21:04:13,865 [74116] [INFO] GET /httptest/
+ef35c.jpeg from ('127.0.0.1', 52423)
+2025-06-22 21:04:13,865 [74116] [INFO] Served file: http-test-suite\httptest/ef3
+5c.jpeg with len 160462
+2025-06-22 21:04:13,867 [74116] [INFO] Response sent to ('127.0.0.1', 52423)
+ok
+Content-Type for .jpg ... 2025-06-22 21:04:15,919 [74116] [INFO] GET /httptest/1
+60313.jpg from ('127.0.0.1', 52426)
+2025-06-22 21:04:15,919 [74116] [INFO] Served file: http-test-suite\httptest/160
+313.jpg with len 267037
+2025-06-22 21:04:15,923 [74116] [INFO] Response sent to ('127.0.0.1', 52426)
+ok
+Content-Type for .js ... 2025-06-22 21:04:17,966 [74116] [INFO] GET /httptest/jq
+uery-1.9.1.js from ('127.0.0.1', 52428)
+2025-06-22 21:04:17,967 [74116] [INFO] Served file: http-test-suite\httptest/jqu
+ery-1.9.1.js with len 268381
+2025-06-22 21:04:17,968 [74116] [INFO] Response sent to ('127.0.0.1', 52428)
+ok
+Content-Type for .png ... 2025-06-22 21:04:20,020 [74116] [INFO] GET /httptest/l
+ogo.v2.png from ('127.0.0.1', 52430)
+2025-06-22 21:04:20,020 [74116] [INFO] Served file: http-test-suite\httptest/log
+o.v2.png with len 1754
+2025-06-22 21:04:20,020 [74116] [INFO] Response sent to ('127.0.0.1', 52430)
+ok
+Content-Type for .swf ... 2025-06-22 21:04:22,063 [74116] [INFO] GET /httptest/b
+16261023.swf from ('127.0.0.1', 52433)
+2025-06-22 21:04:22,064 [74116] [INFO] Served file: http-test-suite\httptest/b16
+261023.swf with len 35344
+2025-06-22 21:04:22,065 [74116] [INFO] Response sent to ('127.0.0.1', 52433)
+ok
+head method support ... 2025-06-22 21:04:22,066 [74116] [INFO] HEAD /httptest/di
+r2/page.html from ('127.0.0.1', 52434)
+2025-06-22 21:04:22,066 [74116] [INFO] Response sent to ('127.0.0.1', 52434)
+ok
+directory index file absent ... 2025-06-22 21:04:24,128 [74116] [INFO] GET /http
+test/dir1/ from ('127.0.0.1', 52437)
+2025-06-22 21:04:24,128 [74116] [ERROR] File not found http-test-suite\httptest/
+dir1/index.html
+2025-06-22 21:04:24,128 [74116] [ERROR] Failed to get file with HTTPRequest HTTP
+Request(src=('127.0.0.1', 52437), method='GET', path='/httptest/dir1/', params={
+}, version='HTTP/1.1', headers={'Host': 'localhost', 'Accept-Encoding': 'identit
+y'}, body=None) error: File httptest/dir1/index.html doesn't exists
+Traceback (most recent call last):
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 286, in generate_response
+    response_body = self.handler(request)
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 93, in __call__
+    return handler(income)
+           ^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 50, in __call__
+    raise FileNotFoundError(f"File {path} doesn't exists")
+FileNotFoundError: File httptest/dir1/index.html doesn't exists
+2025-06-22 21:04:24,129 [74116] [INFO] Response sent to ('127.0.0.1', 52437)
+ok
+large file downloaded correctly ... 2025-06-22 21:04:26,176 [74116] [INFO] GET /
+httptest/wikipedia_russia.html from ('127.0.0.1', 52439)
+2025-06-22 21:04:26,177 [74116] [INFO] Served file: http-test-suite\httptest/wik
+ipedia_russia.html with len 954824
+2025-06-22 21:04:26,182 [74116] [INFO] Response sent to ('127.0.0.1', 52439)
+ok
+post method forbidden ... 2025-06-22 21:04:28,213 [74116] [INFO] POST /httptest/
+dir2/page.html from ('127.0.0.1', 52443)
+2025-06-22 21:04:28,214 [74116] [WARNING] Unsupported method: POST
+2025-06-22 21:04:28,214 [74116] [INFO] Response sent to ('127.0.0.1', 52443)
+ok
+Server header exists ... 2025-06-22 21:04:30,275 [74116] [INFO] GET /httptest/ f
+rom ('127.0.0.1', 52448)
+2025-06-22 21:04:30,275 [74116] [ERROR] File not found http-test-suite\httptest/
+index.html
+2025-06-22 21:04:30,276 [74116] [ERROR] Failed to get file with HTTPRequest HTTP
+Request(src=('127.0.0.1', 52448), method='GET', path='/httptest/', params={}, ve
+rsion='HTTP/1.1', headers={'Host': 'localhost', 'Accept-Encoding': 'identity'},
+body=None) error: File httptest/index.html doesn't exists
+Traceback (most recent call last):
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\server\server
+.py", line 286, in generate_response
+    response_body = self.handler(request)
+                    ^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 93, in __call__
+    return handler(income)
+           ^^^^^^^^^^^^^^^
+  File "E:\Github\otus_python_professional\WebServer\webserver_src\handler\handl
+er.py", line 50, in __call__
+    raise FileNotFoundError(f"File {path} doesn't exists")
+FileNotFoundError: File httptest/index.html doesn't exists
+2025-06-22 21:04:30,276 [74116] [INFO] Response sent to ('127.0.0.1', 52448)
+ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 43.091s
+
+OK
+make: Leaving directory `E:/Github/otus_python_professional/WebServer'
