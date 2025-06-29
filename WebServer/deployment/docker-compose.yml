@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  webserver:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../documents:/app/documents
+    environment:
+      - DOCUMENT_ROOT=/app/documents
