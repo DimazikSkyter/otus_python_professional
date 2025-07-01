@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ poll.title }}</title>
+  <style>
+    .logout {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="logout">
+  <a href="{% url 'logout' %}" title="Logout">
+    🔓 Logout
+  </a>
+</div>
+{% endif %}
+
+<h1>{{ poll.title }}</h1>
+
+{% if user.is_authenticated %}
+<form method="post">
+  {% csrf_token %}
+  {% for question in poll.questions.all %}
+  <h2>{{ question.text }}</h2>
+  {% for choice in question.choices.all %}
+  <label>
+    <input type="radio" name="question_{{ question.id }}" value="{{ choice.id }}">
+    {{ choice.choice_text }}
+  </label><br>
+  {% endfor %}
+  {% endfor %}
+  <button type="submit">Проголосовать</button>
+</form>
+{% else %}
+<p>Пожалуйста, <a href="{% url 'login' %}?next={{ request.path }}">войдите</a>, чтобы принять участие в голосовании.</p>
+{% endif %}
+
+<p><a href="{% url 'poll_list' %}">Назад к списку опросов</a></p>
+</body>
+</html>

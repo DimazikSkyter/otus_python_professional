@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Статистика по опросам</title>
+    <style>
+        .logout {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        body {
+            font-family: sans-serif;
+        }
+        h1, h2, h3 {
+            margin-top: 20px;
+        }
+        .poll {
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="logout">
+    <a href="{% url 'logout' %}" title="Logout">🔓 Logout</a>
+</div>
+{% endif %}
+
+<h1>Статистика по опросам</h1>
+<h1>Итоговая статистика</h1>
+
+{% if user.is_superuser %}
+{% for poll in polls %}
+<div class="poll">
+    <h2>{{ poll.title }}</h2>
+    <p><strong>Автор:</strong> {{ poll.created_by.username }}</p>
+    {% for question in poll.questions.all %}
+    <h3>{{ question.text }}</h3>
+    <ul>
+        {% for choice in question.choices.all %}
+        <li>{{ choice.choice_text }} — {{ choice.votes }} голос{{ choice.votes|pluralize:"ов,а," }}</li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+</div>
+{% empty %}
+<p>Нет доступных опросов.</p>
+{% endfor %}
+{% else %}
+<p>Доступ к этой странице разрешён только суперпользователям.</p>
+{% endif %}
+
+<p><a href="{% url 'poll_list' %}">← Назад к списку опросов</a></p>
+</body>
+</html>

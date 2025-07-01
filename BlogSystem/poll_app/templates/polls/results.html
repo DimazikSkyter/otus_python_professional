@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Results - {{ poll.title }}</title>
+    <style>
+        .logout {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="logout">
+    <a href="{% url 'logout' %}" title="Logout">
+        🔓 Logout
+    </a>
+</div>
+{% endif %}
+
+<h1>Results for {{ poll.title }}</h1>
+
+{% if user.is_staff %}
+{% for question in poll.questions.all %}
+<h2>{{ question.text }}</h2>
+<ul>
+    {% for choice in question.choices.all %}
+    <li>{{ choice.choice_text }} — {{ choice.votes }} голос{{ choice.votes|pluralize:"ов,а," }}</li>
+    {% endfor %}
+</ul>
+{% endfor %}
+{% else %}
+<p>Доступ к результатам разрешён только администраторам.</p>
+<p><a href="{% url 'poll_detail' poll.id %}">Назад к опросу</a></p>
+{% endif %}
+
+<p><a href="{% url 'poll_list' %}">Назад к списку опросов</a></p>
+</body>
+</html>
