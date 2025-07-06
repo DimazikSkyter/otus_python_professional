@@ -1,0 +1,26 @@
+[project]
+name = "blogsystem"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Дмитрий Цитман",email = "dimazzik@gmail.com"}
+]
+package-mode = false
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django (>=5.2.3,<6.0.0)",
+    "isort (>=6.0.1,<7.0.0)"
+]
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.16.1"
+django-stubs = "^5.2.1"
+

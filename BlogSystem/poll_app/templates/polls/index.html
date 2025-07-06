@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Polls</title>
+  <style>
+    .logout {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+{% if user.is_authenticated %}
+<div class="logout">
+  <a href="{% url 'logout' %}" title="Logout">
+    🔓 Logout
+  </a>
+</div>
+{% endif %}
+
+<h1>Available Polls</h1>
+<form method="get">
+  <input type="text" name="q" placeholder="Search polls..." value="{{ request.GET.q }}">
+  <button type="submit">Search</button>
+</form>
+<ul>
+  {% for poll in polls %}
+  <li><a href="{% url 'poll_detail' poll.id %}">{{ poll.title }}</a> ({{ poll.num_questions }} questions)</li>
+  {% empty %}
+  <li>No polls found.</li>
+  {% endfor %}
+</ul>
+</body>
+</html>
