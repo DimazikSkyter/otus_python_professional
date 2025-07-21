@@ -1,8 +1,6 @@
 from domain.unit_of_work import UnitOfWork
-from infrastructure.repositories import (
-    SqlAlchemyOrderRepository,
-    SqlAlchemyProductRepository,
-)
+from infrastructure.repositories import (SqlAlchemyOrderRepository,
+                                         SqlAlchemyProductRepository)
 
 
 class SqlAlchemyUnitOfWork(UnitOfWork):

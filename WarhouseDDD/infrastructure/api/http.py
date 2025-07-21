@@ -1,14 +1,14 @@
 from typing import List
 
-from fastapi import Depends, FastAPI
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
 from domain.services import WarehouseService
-from infrastructure.api.schemas import OrderItemIn, OrderOut, ProductIn, ProductOut
+from fastapi import Depends, FastAPI
+from infrastructure.api.schemas import (OrderItemIn, OrderOut, ProductIn,
+                                        ProductOut)
 from infrastructure.database import DATABASE_URL
 from infrastructure.orm import Base
 from infrastructure.unit_of_work import SqlAlchemyUnitOfWork
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 app = FastAPI()
 
