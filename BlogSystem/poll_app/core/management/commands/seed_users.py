@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-
 from poll_app.init_seed_users import seed_users
 
 
