@@ -5,3 +5,6 @@ run-server:
 
 lint:
 	poetry run mypy .
+
+init-user:
+	poetry run python vf_app/storage/init_user.py
