@@ -1,0 +1,30 @@
+export default {
+async fetch(request, env) {
+if (request.method !== "POST") {
+return new Response("OK", { status: 200 });
+}
+
+// простая авторизация по токену
+const auth = request.headers.get("x-relay-token");
+if (!auth || auth !== env.RELAY_TOKEN) {
+return new Response("Unauthorized", { status: 401 });
+}
+
+// ждём JSON: { method: "sendMessage", token: "...", payload: {...} }
+const body = await request.json().catch(() => ({}));
+const { method, token, payload } = body || {};
+if (!method || !token || !payload) {
+return new Response("Bad Request", { status: 400 });
+}
+
+const url = `https://api.telegram.org/bot${encodeURIComponent(token)}/${method}`;
+const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+});
+
+const text = await res.text();
+return new Response(text, { status: res.status, headers: { "content-type": "application/json" } });
+},
+};
