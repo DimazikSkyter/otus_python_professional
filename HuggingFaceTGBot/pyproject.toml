@@ -1,0 +1,25 @@
+[project]
+name = "huggingfacetgbot"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Дмитрий Цитман",email = "dimazzik@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi (>=0.116.1,<0.117.0)",
+    "uvicorn (>=0.35.0,<0.36.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "dateparser (>=1.2.2,<2.0.0)",
+    "huggingface-hub (>=0.34.4,<0.35.0)"
+]
+[tool.poetry]
+package-mode = false
+
+[tool.poetry.group.dev.dependencies]
+huggingface-hub = "^0.34.4"
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
